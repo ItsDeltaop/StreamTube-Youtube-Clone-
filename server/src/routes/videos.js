@@ -53,11 +53,12 @@ router.post('/:id/reaction', requireAuth, async (req, res, next) => {
     const video = await Video.findById(req.params.id);
     if (!video) return res.status(404).json({ message: 'Video not found.' });
     const uid = req.user._id.toString();
-    const has = list => list.some(id => id.toString() === uid);
+    const wasReacted = (list) => list.some(id => id.toString() === uid);
+    const alreadySelected = type === 'like' ? wasReacted(video.likes) : wasReacted(video.dislikes);
     video.likes = video.likes.filter(id => id.toString() !== uid);
     video.dislikes = video.dislikes.filter(id => id.toString() !== uid);
-    if (type === 'like' && !has(video.likes)) video.likes.push(req.user._id);
-    if (type === 'dislike' && !has(video.dislikes)) video.dislikes.push(req.user._id);
+    if (!alreadySelected && type === 'like') video.likes.push(req.user._id);
+    if (!alreadySelected && type === 'dislike') video.dislikes.push(req.user._id);
     await video.save();
     res.json({ likes: video.likes.length, dislikes: video.dislikes.length, myReaction: type });
   } catch (e) { next(e); }
